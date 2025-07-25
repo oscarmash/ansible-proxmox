@@ -1,0 +1,86 @@
+- name: Check if zabbix is available and returning status 200
+  ansible.builtin.uri:
+    url: http://zabbix.ilba.cat
+  until: "result.status == 200"
+  retries: 1
+  delay: 5
+  register: result
+  ignore_errors: true
+  delegate_to: localhost
+  tags: zabbix_agent
+
+- name: Start VM zabbix.ilba.cat
+  ansible.builtin.shell: qm start 115
+  delegate_to: host2
+  when: result.status != 200
+  tags: zabbix_agent
+
+- name: Wait for HTTP
+  local_action: wait_for port=80 host="172.26.0.13"
+  delegate_to: localhost
+  tags: zabbix_agent
+
+- name: Install Zabbix deb from internet
+  ansible.builtin.apt:
+    deb: https://repo.zabbix.com/zabbix/6.0/debian/pool/main/z/zabbix-release/zabbix-release_6.0-4%2Bdebian11_all.deb
+  tags: zabbix_agent
+
+- name: install Zabbix agent2
+  ansible.builtin.apt: 
+    name: zabbix-agent2
+    state: present
+    update_cache: yes
+  tags: zabbix_agent
+
+- name: Modify zabbix_agent2.conf
+  ansible.builtin.lineinfile: dest=/etc/zabbix/zabbix_agent2.conf regexp="{{ item.var }}=" line="{{ item.var }}={{ item.value }}"
+  with_items:
+    - { var: "ServerActive", value: "172.26.0.13"}
+    - { var: "Server", value: "172.26.0.13"}
+    - { var: "Hostname", value: "{{ vm_name }}.ilba.cat"}
+  tags: zabbix_agent
+
+- name: Adding user zabbix to group docker
+  ansible.builtin.user:
+    name: zabbix
+    groups: docker
+    append: yes
+  ignore_errors: true
+  tags: zabbix_agent
+
+- name: Start the Zabbix agent service
+  service:
+    name: zabbix-agent2
+    state: started
+    enabled: yes
+  tags: zabbix_agent
+
+- name: Create a new host or rewrite an existing host's info
+  vars:
+    ansible_network_os: community.zabbix.zabbix
+    ansible_connection: httpapi
+    ansible_httpapi_port: 80
+    ansible_httpapi_use_ssl: false
+    ansible_httpapi_validate_certs: false
+    ansible_zabbix_url_path: ""
+    ansible_host: zabbix.ilba.cat
+    ansible_zabbix_auth_key: 24423ff3b6644832a65e248d3a373a88e4453a83b5824d7c3a02ef7639c00768
+  become: false
+  delegate_to: zabbix.ilba.cat
+  community.zabbix.zabbix_host:
+    host_name:  "{{ vm_name }}.ilba.cat"
+    description: Created by Ansible
+    host_groups:
+      - Ilba - VM Proxmox
+    link_templates:
+      - Linux by Zabbix agent
+      - Docker by Zabbix agent 2
+    status: enabled
+    state: present
+    inventory_mode: automatic
+    interfaces:
+      - type: 1
+        main: 1
+        useip: 1
+        ip: 172.26.0.{{ vm_ip }}
+  tags: zabbix_agent,alta_zabbix

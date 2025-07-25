@@ -1,0 +1,26 @@
+# - name: Muestra password de Vault
+#   debug:
+#     var: token_powerdns
+
+- name: Check that you can connect to PowerDNS
+  uri:
+    url: http://172.26.0.11
+  delegate_to: localhost
+
+- name: Alta puntero DNS
+  uri:
+   method: PATCH
+   url: "http://172.26.0.11/api/v1/servers/localhost/zones/ilba.cat"
+   body:
+      rrsets:
+        - name: "{{ vm_name }}.ilba.cat."
+          type: A
+          ttl: 60
+          changetype: REPLACE
+          records:
+            - content: "172.26.0.{{ vm_ip }}"
+              disabled: false
+   body_format: json
+   headers:
+      'X-API-Key': '{{ token_powerdns }}'
+   status_code: 201

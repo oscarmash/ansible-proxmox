@@ -1,0 +1,23 @@
+[all]
+template   	ansible_host=172.26.0.22
+
+[vm_proxmox]
+dns        	ansible_host=172.26.0.11
+zabbix     	ansible_host=172.26.0.13
+netbox	   	ansible_host=172.26.0.14
+librenms   	ansible_host=172.26.0.23
+harbor	   	ansible_host=172.26.0.29
+vault      	ansible_host=172.26.0.30
+redmine    	ansible_host=172.26.0.31
+monitoring	ansible_host=172.26.0.32
+p2p        	ansible_host=172.26.0.37
+gitlab-runner	ansible_host=172.26.0.38
+jenkins	    	ansible_host=172.26.0.40
+gitlab      	ansible_host=172.26.0.59
+mldonkey    	ansible_host=172.26.0.68
+nextcloud   	ansible_host=172.26.0.67
+
+[proxmox]
+host1       	ansible_host=172.26.0.71
+host2       	ansible_host=172.26.0.72
+pi-pve-111     	ansible_host=172.26.0.111

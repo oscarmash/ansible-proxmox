@@ -1,0 +1,140 @@
+- name: Check if netbox is available and returning status 200
+  ansible.builtin.uri:
+    url: http://172.26.0.14:8000
+  until: "result.status == 200"
+  retries: 1
+  delay: 5
+  register: result
+  ignore_errors: true
+  tags: check_netbox_up
+
+- name: Start VM netbox.ilba.cat
+  ansible.builtin.shell: qm start 120
+  delegate_to: host2
+  when: result.status != 200
+  tags: check_netbox_up
+
+- name: Use qm list and awk to get id
+  ansible.builtin.shell: qm list | grep "{{ hostname_vm }}" | awk '$3 == "running" { print $1 }'
+  register: id_vm
+  delegate_to: '{{ hostname_hypervisor }}'
+  tags: update_so, setting_vm
+
+- name: Shutdown VM
+  ansible.builtin.shell: qm shutdown {{ id_vm.stdout }}
+  delegate_to: '{{ hostname_hypervisor }}'
+  tags: update_so
+
+- name: Snapshot VM
+  ansible.builtin.command: "qm snapshot {{ id_vm.stdout  }} ansible_before_update"
+  delegate_to: '{{ hostname_hypervisor }}'
+  tags: update_so
+
+- name: Start VM
+  ansible.builtin.shell: qm start {{ id_vm.stdout  }}
+  delegate_to: '{{ hostname_hypervisor }}'
+  tags: update_so
+
+- name: Wait for SSH
+  local_action: wait_for port=22 host="{{ hostvars[hostname_vm].ansible_host }}"
+  delegate_to: localhost
+  tags: update_so
+
+- name: Update and upgrade apt packages
+  ansible.builtin.apt:
+    upgrade: full
+    update_cache: true
+    cache_valid_time: 86400 # One day
+    force_apt_get: true
+    autoclean: true
+    clean: true
+  delegate_to: '{{ hostname_vm }}'
+  tags: update_so
+
+- name: Remove dependencies that are no longer required
+  ansible.builtin.apt:
+    autoremove: yes
+  delegate_to: '{{ hostname_vm }}'
+  tags: update_so
+
+- name: fstrim
+  ansible.builtin.shell: fstrim --fstab
+  delegate_to: '{{ hostname_vm }}'
+  tags: update_so
+
+- name: Get today Date
+  ansible.builtin.shell: "date +%Y-%m-%d%H-%M-%S"
+  register: tstamp
+  delegate_to: localhost
+  tags: change_netbox_date, today_date
+
+- name: Set variables
+  ansible.builtin.set_fact:
+    cur_date: "{{ tstamp.stdout[0:10] }}"
+  tags: change_netbox_date, today_date
+
+- name: Modify VM in NetBox -> Time
+  netbox.netbox.netbox_virtual_machine:
+    netbox_url: http://172.26.0.14:8000/
+    netbox_token: d084f2cfdcd678ae9a9a9f7070f86bc10591a0a4
+    data:
+      name: "{{ hostname_vm }}.ilba.cat"
+      custom_fields:
+        ultimo_update: '{{ cur_date }}'
+    state: present
+  delegate_to: localhost
+  tags: change_netbox_date
+
+# ansible -i inventory -m debug -a "var=hostvars[inventory_hostname]" pdns
+# ansible-inventory -i inventory --list | jq '._meta.hostvars[].ansible_host
+# docker system prune -a && fstrim --fstab --verbose
+
+- name: Get setting VM Cores
+  ansible.builtin.shell: >
+    qm config {{ id_vm.stdout  }} | grep cores: | cut -d " " -f2
+  delegate_to: '{{ hostname_hypervisor }}'
+  register: setting_vm_cores
+  tags: update_so, setting_vm
+
+- name: Get setting VM Memory
+  ansible.builtin.shell: >
+    qm config {{ id_vm.stdout  }} | grep memory: | cut -d " " -f2
+  delegate_to: '{{ hostname_hypervisor }}'
+  register: setting_vm_memory
+  tags: update_so, setting_vm
+
+- name: Get setting VM HD
+  ansible.builtin.shell: >
+    qm config {{ id_vm.stdout  }} | grep "size=" | awk '{ print $2 }' | cut -d "," -f4 | cut -d "=" -f2 | tr -d 'G'
+  delegate_to: '{{ hostname_hypervisor }}'
+  register: setting_vm_hd
+  tags: update_so, setting_vm
+
+- name: Modify VM in NetBox -> Cores/Memory/HD
+  netbox.netbox.netbox_virtual_machine:
+    netbox_url: http://172.26.0.14:8000/
+    netbox_token: d084f2cfdcd678ae9a9a9f7070f86bc10591a0a4
+    data:
+      name: "{{ hostname_vm }}.ilba.cat"
+      vcpus: "{{ setting_vm_cores.stdout }}"
+      memory: "{{ setting_vm_memory.stdout }}"
+      disk: "{{ setting_vm_hd.stdout }}"
+    state: present
+  delegate_to: localhost
+  tags: setting_vm
+
+# - name: ID del equipo
+#   debug: msg="{{ id_vm.stdout }}"
+#   tags: update_so, setting_vm
+
+# - name: Cores del equipo
+#   debug: msg="{{ setting_vm_cores.stdout }}"
+#   tags: update_so, setting_vm
+
+# - name: Memoria del equipo en MB
+#   debug: msg="{{ setting_vm_memory.stdout }}"
+#   tags: update_so, setting_vm
+
+# - name: HD del equipo en GB
+#   debug: msg="{{ setting_vm_hd.stdout }}"
+#   tags: update_so, setting_vm

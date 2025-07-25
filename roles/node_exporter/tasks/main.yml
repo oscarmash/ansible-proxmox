@@ -1,0 +1,37 @@
+  - name: Add the user 'node_exporter'
+    ansible.builtin.user:
+      name: node_exporter
+      shell: /bin/false
+      create_home: false
+      append: yes
+    tags: node_exporter
+
+  - name: Copy file 'node_exporter'
+    ansible.builtin.copy:
+      src: files/node_exporter
+      dest: /usr/local/bin/node_exporter
+      owner: root
+      group: root
+      mode: '0755'
+    tags: node_exporter
+
+  - name: Copy file 'node_exporter.service'
+    ansible.builtin.copy:
+      src: files/node_exporter.service
+      dest: /etc/systemd/system/node_exporter.service
+      owner: root
+      group: root
+      mode: '0644'
+    tags: node_exporter
+
+  - name: Force 'daemon_reload'
+    ansible.builtin.systemd:
+      daemon_reload: yes
+    tags: node_exporter
+
+  - name: Enable and start 'node_exporter.service'
+    ansible.builtin.systemd:
+      name: node_exporter.service
+      state: started
+      enabled: yes
+    tags: node_exporter

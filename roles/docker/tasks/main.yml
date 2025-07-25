@@ -1,0 +1,43 @@
+  - name: Install common packages
+    apt:
+      name: [wget,curl,sshpass,gnupg2]
+      state: present
+      update_cache: yes
+    tags: docker
+ 
+  - name: Install Docker
+    shell: |
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+      echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+      apt update
+      apt install -qq -y docker-ce docker-ce-cli containerd.io docker-compose
+    tags: docker
+
+  - name: Enabling and starting docker service
+    service:
+      name: "docker"
+      state: restarted
+    tags: docker
+
+  - name: Create directory docker-compose
+    file:
+      path: /etc/docker-compose
+      state: directory
+    tags: docker
+
+  - name: Copy file 'docker-compose-app.service'
+    ansible.builtin.copy:
+      src: files/docker-compose-app.service
+      dest: /etc/systemd/system/docker-compose-app.service
+      owner: root
+      group: root
+      mode: '0644'
+    tags: docker
+
+  - name: Enabling and starting docker-compose-app service
+    ansible.builtin.systemd:
+      state: stopped
+      enabled: yes
+      daemon_reload: yes
+      name: docker-compose-app
+    tags: docker

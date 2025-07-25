@@ -1,0 +1,27 @@
+- hosts: 
+  - template # los coge del inventory
+  gather_facts: no
+
+  roles:
+    - equipo_baja
+    - pdns_baja
+
+  vars:
+    token_powerdns: "{{ lookup('hashi_vault', 'secret=kv/secret/powerdns:token token=s.DhhTxSEGPInhdkZS10Ni4vMn url=http://172.26.0.30:8200') }}"
+
+  vars_prompt:
+    - name: vm_name
+      prompt: "Nombre del equipo"
+      default: "borrame"
+      private: false
+    - name: vm_ip
+      prompt: "IP del equipo"
+      default: "22"
+      private: false
+    - name: host_destino
+      prompt: "Promox de destino"
+      default: "host2"
+      private: false
+    - name: vm_id
+      prompt: "ID del equipo"
+      private: false

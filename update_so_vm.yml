@@ -1,0 +1,16 @@
+- hosts:
+  - localhost
+  gather_facts: no
+
+  roles:
+    - update_so
+
+  vars_prompt:
+    - name: hostname_vm
+      prompt: "Hostname de la vm (dns/zabbix/gitlab/mldonkey/etc...)"
+      default: "none"
+      private: false
+    - name: hostname_hypervisor
+      prompt: "Hostname hypervisor (host1/host2)"
+      default: "none"
+      private: false

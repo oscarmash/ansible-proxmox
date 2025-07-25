@@ -1,0 +1,79 @@
+  - name: Installing 'postfix' packages
+    apt:
+      pkg:
+        - postfix
+        - mailutils
+    tags: postfix
+
+  - name: Enable and start 'postfix'
+    ansible.builtin.systemd:
+      name: postfix
+      state: started
+      enabled: yes
+    tags: postfix
+
+  - name: Add relayhost 
+    replace:
+      path: /etc/postfix/main.cf
+      regexp: '^relayhost ='
+      replace: 'relayhost = [smtp.gmail.com]:587'
+    tags: postfix
+
+  - name: Update a file 'main.cf'
+    blockinfile:
+      dest: /etc/postfix/main.cf
+      block: |
+        smtp_use_tls = yes
+        smtp_sasl_auth_enable = yes
+        smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+        smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt
+        smtp_sasl_security_options = noanonymous
+        smtp_sasl_tls_security_options = noanonymous
+        header_checks = regexp:/etc/postfix/header_checks
+    tags: postfix
+  - name: Configuring postfix sasl creds
+    copy:
+      content: '[smtp.gmail.com]:587 oscarmash@gmail.com:uzffwrznmoooveyq'
+      dest: /etc/postfix/sasl_passwd
+      owner: root
+      group: postfix
+      mode: 0600
+    tags: postfix
+
+  - name: Configuring header_checks
+    copy:
+      content: '/^Subject:/     WARN'
+      dest: /etc/postfix/header_checks
+      owner: root
+      group: postfix
+      mode: 0600
+    tags: postfix
+
+  - name: Postmap sasl_passwd
+    command: postmap /etc/postfix/sasl_passwd
+    tags: postfix
+
+  - name: Postmap header_checks
+    command: postmap /etc/postfix/header_checks
+    tags: postfix
+
+  - name: Enabling and starting postfix service
+    service:
+      name: "postfix"
+      state: restarted
+    tags: postfix
+
+  - name: Set hostname to root
+    replace:
+      path: /etc/passwd
+      regexp: ":root:"
+      replace: ":{{ vm_name }}:"
+    tags: postfix
+
+  - mail:
+      host: localhost
+      port: 25
+      to: Oscar Mas <oscarmash@gmail.com>
+      subject: Ansible-report
+      body: 'System {{ vm_name }} has been successfully provisioned.'
+    tags: postfix, test_mail

@@ -1,0 +1,15 @@
+- name: Clone VM
+  shell: qm clone {{ clone_id }} {{ nextid }} -name {{ vm_name }}.ilba.cat -target {{ host_destino }} -full 1
+  delegate_to: "{{ host_destino }}"
+
+- name: Set VM
+  shell: qm set {{ nextid }} --memory {{ vm_memory }} --sockets {{ vm_sockets }} --cores {{ vm_cores }}
+  delegate_to: "{{ host_destino }}"
+
+- name: Start VM
+  shell: qm start {{ nextid }}
+  delegate_to: "{{ host_destino }}"
+
+- name: Wait for SSH
+  local_action: wait_for port=22 host=172.26.0.22
+  delegate_to: localhost

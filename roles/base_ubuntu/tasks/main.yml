@@ -1,0 +1,95 @@
+# ssh-copy-id -i /home/oscar/.ssh/id_rsa.pub oscar@172.26.0.22:
+
+  - name: Update and upgrade apt packages
+    become: true
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 3600
+
+  - name: Installing multiple packages
+    apt:
+      pkg:
+        - net-tools
+        - htop
+        - qemu-guest-agent
+        - ncdu
+        - mlocate
+        - curl
+        - vim
+      state: latest
+
+  - name: Start and enable qemu-guest-agent
+    ansible.builtin.service:
+      name: qemu-guest-agent
+      state: started
+      enabled: yes
+
+  - name: Change /etc/cloud/cloud.cfg
+    lineinfile:
+      path: /etc/cloud/cloud.cfg
+      regexp: 'preserve_hostname: false'
+      line: "preserve_hostname: true"
+
+  - name: Change /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      regexp: '127.0.1.1 template'
+      line: "127.0.1.1 {{ vm_name }}"
+
+  - name: Change /etc/hostname
+    lineinfile:
+      path: /etc/hostname
+      regexp: 'template'
+      line: "{{ vm_name }}"
+
+  - name: Change IP
+    lineinfile:
+      path: /etc/netplan/50-cloud-init.yaml
+      regexp: '      - 172.26.0.22/24'
+      line: "      - 172.26.0.{{ vm_ip }}/24"
+
+  #- name: Change DNS
+  #  lineinfile:
+  #    path: /etc/netplan/00-installer-config.yaml
+  #    regexp: '        - 8.8.8.8'
+  #    line: "        - {{ vm_dns }}"
+
+  - name: Set hostname
+    shell: "hostnamectl set-hostname {{ vm_name }}"
+    become: true
+    become_user: root
+
+  # pip install passlib
+  # python -c "from passlib.hash import sha512_crypt; import getpass; print sha512_crypt.encrypt(getpass.getpass())"
+  #- name: Update Root user's Password
+  #  user:
+  #    name: root
+  #    update_password: always
+  #    password: $6$oLGRojc7a8R5Fsjw$DLZ7K8R5L8OmXqdNmVRjDg6MpGOh53paoVA57s.LpFa1codnWGi9iEuAxRltRQ0G2S1pJyHJNnTZKv9G/Y.DN.
+
+  #- name: Enable root login over SSH
+  #  lineinfile: dest=/etc/ssh/sshd_config regexp="^PermitRootLogin" line="PermitRootLogin yes" state=present
+
+  #- name: Enable password login
+  #  lineinfile: dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication" line="PasswordAuthentication yes" state=present
+
+  #- name: Add id_rsa.pub
+  #  shell: echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCc8E249Z9GKz63xcozQ3siA+/SXnw2TrhbMigJiESh2PYDC2CiqUFaSM07BM9bGwDbtomAzilKSigifNmzV1jlKgRe9165ngidmOJ+rEa7WwTXV3gl0AYArx6dmxkG2KTckSFhzEiPdiSvlb/0UswXiN/OWyPsjrcFZBewnpIKhrvYYsAN/u2vJjG1x74Oc4jdmId7jZMAdhImz0eE1UMpOiOUHZMAJ8W1BK/4T/PU1pzulDRi2qltWX21kQnQkT1fe7BSxXQUx4Ea80H5MszhuCJn8IbPSUFniq3hYNwNz6dzpoQJ7o9kMB8CeI+WBRCoBM1vGkWZB2+IaVqzAbLlBTeVPSEzhtVndVMI0gbCa9AxzWMG6+PxWQjFUFlDxuSkrs+3cavG41PsqQMpug6Kf4o5qINPblSaEOkuJLpaQDb4AhCCSFpK/aH7szOpRmwLGlqJNtMnL9Hf1+mNNymVjyF8TUOmLKPqyyDvkFFo3SSx/KHWr1EslHhSKW/HKy0= oscar.mas@ilimit.net" >> /root/.ssh/authorized_keys
+    become: true
+    become_user: root
+
+  - name: vimrc
+    copy:
+      dest: /root/.vimrc
+      content: |
+        set mouse=c
+        syntax on
+        set background=dark
+    become: true
+    become_user: root
+
+#  - name: Reboot a Linux machine
+#    command: "reboot"
+#    become: true
+#    become_user: root

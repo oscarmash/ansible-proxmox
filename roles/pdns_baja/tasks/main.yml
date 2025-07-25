@@ -1,0 +1,20 @@
+- name: Muestra password de Vault
+  debug:
+    var: token_powerdns
+
+- name: Remove puntero DNS
+  uri:
+   method: PATCH
+   url: "http://172.26.0.11/api/v1/servers/localhost/zones/ilba.cat"
+   body:
+      rrsets:
+        - name: "{{ vm_name }}.ilba.cat."
+          type: A
+          ttl: 60
+          changetype: DELETE
+   body_format: json
+   headers:
+      'X-API-Key': '{{ token_powerdns }}'
+   status_code: 201
+  delegate_to: localhost
+

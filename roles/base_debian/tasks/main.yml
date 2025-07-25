@@ -1,0 +1,89 @@
+#  - name: System details
+#    debug: msg="{{ item }}"
+#    with_items: 
+#    - "{{ ansible_distribution }}"
+#    - "{{ ansible_distribution_version }}"
+  
+  - name: Update and upgrade apt packages
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 3600
+
+  - name: Installing multiple packages
+    apt:
+      pkg:
+        - net-tools
+        - htop
+        - qemu-guest-agent
+        - ncdu
+        - mlocate
+        - curl
+        - wget
+        - bash-completion
+        - vim
+        - git
+        - htop
+        - gnupg2
+        - lsb-release
+        - software-properties-common
+        - sudo
+      state: latest
+      update_cache: true
+
+  - name: Start and enable qemu-guest-agent
+    ansible.builtin.service:
+      name: qemu-guest-agent
+      state: started
+      enabled: yes
+
+  - name: Change /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      regexp: '^172.26.0.22     debian110.ilba.cat      debian110'
+      line: "172.26.0.{{vm_ip}}     {{vm_name}}.ilba.cat      {{vm_name}}"
+
+  - name: Change /etc/hostname
+    lineinfile:
+      path: /etc/hostname
+      regexp: 'debian110'
+      line: "{{ vm_name }}"
+
+  - name: Change IP
+    lineinfile:
+      path: /etc/network/interfaces
+      regexp: "address 172.26.0.22/24"
+      line: "address 172.26.0.{{ vm_ip }}/24"
+
+  - name: Change DNS
+    lineinfile:
+      path: /etc/network/interfaces
+      regexp: "dns-nameservers 172.26.0.11"
+      line: "dns-nameservers {{vm_dns}}"
+
+  - name: bashrc con colores 1
+    replace:
+      path: /root/.bashrc
+      regexp: '^# alias'
+      replace: 'alias'
+
+  - name: bashrc con colores 2
+    replace:
+      path: /root/.bashrc
+      regexp: '^# export'
+      replace: 'export'
+
+  - name: bashrc con colores 3
+    replace:
+      path: /root/.bashrc
+      regexp: '^# eval'
+      replace: 'eval'
+
+  - name: vimrc
+    copy:
+      dest: /root/.vimrc
+      content: |
+        set mouse=c
+        syntax on
+        set background=dark
+

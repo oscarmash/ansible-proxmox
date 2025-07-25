@@ -1,0 +1,16 @@
+- name: Status VM
+  shell: qm status {{ vm_id }} | grep -q 'running' && echo "encendida" || echo "apagada"
+  delegate_to: "{{ host_destino }}"
+  register: status_vm
+
+- debug:
+    var: status_vm
+
+- name: Stop VM
+  shell: qm stop {{ vm_id }}
+  delegate_to: "{{ host_destino }}"
+  when: status_vm.stdout == "encendida"
+
+- name: Remove VM
+  shell: qm destroy {{ vm_id }}
+  delegate_to: "{{ host_destino }}"
