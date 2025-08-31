@@ -20,4 +20,4 @@ nextcloud   	ansible_host=172.26.0.67
 [proxmox]
 host1       	ansible_host=172.26.0.71
 host2       	ansible_host=172.26.0.72
-pi-pve-111     	ansible_host=172.26.0.111
+2025-05     	ansible_host=172.26.0.111
