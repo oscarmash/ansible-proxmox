@@ -1,2 +1,2 @@
-- name: Rebooting the machine
+- name: Finish
   reboot:
