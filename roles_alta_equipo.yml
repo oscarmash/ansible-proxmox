@@ -45,7 +45,7 @@
       private: false
     - name: clone_id
       prompt: "Equipo a clonar"
-      default: "9999"
+      default: "9994/9993"
       private: false
     - name: nextid
       prompt: "ID del equipo"

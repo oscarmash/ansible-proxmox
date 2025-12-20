@@ -1,7 +1,7 @@
   - name: Installing 'neofetch' package
     apt:
       pkg:
-        - neofetch
+        - neowofetch
     tags: neofetch
 
   - name: Clean motd
@@ -38,7 +38,7 @@
   - name: Add 'neofetch' to '/etc/profile'
     lineinfile:
       dest: /etc/profile
-      line: neofetch --config /etc/ssh/neofetch.conf
+      line: neowofetch --config /etc/ssh/neofetch.conf
     when: register_neofetch.stdout != "0"
     tags: neofetch
 
