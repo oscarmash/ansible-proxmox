@@ -6,7 +6,7 @@
     - equipo_alta
     - base_debian
     #- base_ubuntu
-    #- docker
+    - docker
     - neofetch
     #- node_exporter
     #- postfix

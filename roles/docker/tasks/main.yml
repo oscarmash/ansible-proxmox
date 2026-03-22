@@ -1,26 +1,54 @@
   - name: Install common packages
-    apt:
+    ansible.builtin.apt:
       name: [wget,curl,sshpass,gnupg2]
       state: present
       update_cache: yes
     tags: docker
- 
-  - name: Install Docker
-    shell: |
-      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-      echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
-      apt update
-      apt install -qq -y docker-ce docker-ce-cli containerd.io docker-compose
+
+  - name: Uninstall all conflicting packages
+    ansible.builtin.shell: |
+      apt remove $(dpkg --get-selections docker.io docker-compose docker-doc podman-docker containerd runc | cut -f1)
+    tags: docker
+
+  - name: Prerequisites Docker
+    ansible.builtin.shell: |
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+      chmod a+r /etc/apt/keyrings/docker.asc
+    tags: docker
+
+  - name: Repository Docker
+    ansible.builtin.shell: |
+      tee /etc/apt/sources.list.d/docker.sources <<EOF
+      Types: deb
+      URIs: https://download.docker.com/linux/debian
+      Suites: $(. /etc/os-release && echo "$VERSION_CODENAME")
+      Components: stable
+      Signed-By: /etc/apt/keyrings/docker.asc
+      EOF
+    tags: docker
+
+  - name: Install docker packages
+    ansible.builtin.apt:
+      name: "{{item}}"
+      state: present
+      update_cache: yes
+    loop:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
     tags: docker
 
   - name: Enabling and starting docker service
-    service:
+    ansible.builtin.service:
       name: "docker"
       state: restarted
     tags: docker
 
   - name: Create directory docker-compose
-    file:
+    ansible.builtin.file:
       path: /etc/docker-compose
       state: directory
     tags: docker
